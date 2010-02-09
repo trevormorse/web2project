@@ -141,55 +141,18 @@ $end_date = w2PgetParam($_GET, 'end_date', $end_max);
 
 $count = 0;
 
-$graph = new GanttGraph($width);
-$graph->ShowHeaders(GANTT_HYEAR | GANTT_HMONTH | GANTT_HDAY | GANTT_HWEEK);
-//$graph->ShowHeaders(GANTT_HYEAR | GANTT_HMONTH | GANTT_HDAY);
+$gantt = new GanttRenderer($AppUI, $width);
+$gantt->localize();
+$gantt->setTitle($projects[$project_id]['project_name'], '#'.$projects[$project_id]['project_color_identifier']);
 
-$graph->SetFrame(false);
-$graph->SetBox(true, array(0, 0, 0), 2);
-$graph->scale->week->SetStyle(WEEKSTYLE_FIRSTDAY);
-//$graph->scale->day->SetStyle(DAYSTYLE_SHORTDATE2);
+$field = ($showWork == '1') ? 'Work' : 'Dur';
 
-$pLocale = setlocale(LC_TIME, 0); // get current locale for LC_TIME
-$res = setlocale(LC_TIME, $AppUI->user_lang[2]);
-if ($res) { // Setting locale doesn't fail
-	$graph->scale->SetDateLocale($AppUI->user_lang[2]);
-}
-setlocale(LC_TIME, $pLocale);
+$columnNames = array('Task name', $field, 'Start', 'Finish');
+$columnSizes = array(230, 60, 60, 60);
 
-if ($start_date && $end_date) {
-	$graph->SetDateRange($start_date, $end_date);
-}
-if (is_file(TTF_DIR . 'FreeSans.ttf')) {
-	$graph->scale->actinfo->SetFont(FF_CUSTOM);
-}
-$graph->scale->actinfo->vgrid->SetColor('gray');
-$graph->scale->actinfo->SetColor('darkgray');
+$gantt->setColumnHeaders($columnNames, $columnSizes);
+$graph = $gantt->getGraph();
 
-if ($showWork == '1') {
-	$graph->scale->actinfo->SetColTitles(array($AppUI->_('Task name', UI_OUTPUT_RAW), $AppUI->_('Work', UI_OUTPUT_RAW), $AppUI->_('Start', UI_OUTPUT_RAW), $AppUI->_('Finish', UI_OUTPUT_RAW)), array(230, 60, 60, 60));
-} else {
-	$graph->scale->actinfo->SetColTitles(array($AppUI->_('Task name', UI_OUTPUT_RAW), $AppUI->_('Dur.', UI_OUTPUT_RAW), $AppUI->_('Start', UI_OUTPUT_RAW), $AppUI->_('Finish', UI_OUTPUT_RAW)), array(230, 60, 60, 60));
-}
-$graph->scale->tableTitle->Set($projects[$project_id]['project_name']);
-
-// Use TTF font if it exists
-// try commenting out the following two lines if gantt charts do not display
-if (is_file(TTF_DIR . 'FreeSans.ttf')) {
-	$graph->scale->tableTitle->SetFont(FF_CUSTOM, FS_BOLD, 12);
-}
-$graph->scale->SetTableTitleBackground('#' . $projects[$project_id]['project_color_identifier']);
-$font_color = bestColor('#' . $projects[$project_id]['project_color_identifier']);
-$graph->scale->tableTitle->SetColor($font_color);
-$graph->scale->tableTitle->Show(true);
-
-//-----------------------------------------
-// nice Gantt image
-// if diff(end_date,start_date) > 90 days it shows only
-//week number
-// if diff(end_date,start_date) > 240 days it shows only
-//month number
-//-----------------------------------------
 if ($start_date && $end_date) {
 	$min_d_start = new CDate($start_date);
 	$max_d_end = new CDate($end_date);
@@ -219,6 +182,9 @@ if ($start_date && $end_date) {
 			}
 		}
 	}
+}
+if ($start_date && $end_date) {
+	$graph->SetDateRange($start_date, $end_date);
 }
 
 // check day_diff and modify Headers
