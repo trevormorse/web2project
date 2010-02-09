@@ -13,7 +13,6 @@ $task_access = array(CTask::ACCESS_PUBLIC => 'Public', CTask::ACCESS_PROTECTED =
  * Tasks :: Add/Edit Form
  *
  */
-
 $task_id = (int) w2PgetParam($_GET, 'task_id', 0);
 $perms = &$AppUI->acl();
 
@@ -250,18 +249,18 @@ var daily_working_hours = <?php echo intval(w2PgetConfig('daily_working_hours'))
 		<tr>
 			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Status'); ?></td>
 			<td>
-				<?php echo arraySelect($status, 'task_status', 'size="1" class="text"', ($task->task_status ? $task->task_status : 0) , true); ?>
+				<?php echo arraySelect($task->getFieldInfo('task_status', 'list'), 'task_status', 'size="1" class="text"', ($task->task_status ? $task->task_status : 0) , true); ?>
 			</td>
 
 			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Priority'); ?> *</td>
 			<td nowrap="nowrap">
-				<?php echo arraySelect($priority, 'task_priority', 'size="1" class="text"', ($task->task_priority ? $task->task_priority : 0) , true); ?>
+				<?php echo arraySelect($task->getFieldInfo('task_priority', 'list'), 'task_priority', 'size="1" class="text"', ($task->task_priority ? $task->task_priority : 0) , true); ?>
 			</td>
 		</tr>
 		<tr>
 			<td align="right" nowrap="nowrap"><?php echo $AppUI->_('Progress'); ?></td>
 			<td>
-				<?php echo arraySelect($percent, 'task_percent_complete', 'size="1" class="text"', $task->task_percent_complete) . '%'; ?>
+				<?php echo arraySelect($task->getFieldInfo('task_percent_complete', 'list'), 'task_percent_complete', 'size="1" class="text"', $task->task_percent_complete) . '%'; ?>
 			</td>
 
 			<td align="right" nowrap="nowrap"><label for="task_milestone"><?php echo $AppUI->_('Milestone'); ?>?</label></td>

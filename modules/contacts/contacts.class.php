@@ -117,6 +117,10 @@ class CContact extends CW2pObject {
         parent::store();
 	}
 
+	protected function getHistoryDescription($store_type) {
+		return $this->contact_first_name.' '.$this->contact_last_name;
+	}
+	
 	public function delete(CAppUI $AppUI = null) {
         global $AppUI;
 
@@ -513,7 +517,7 @@ class CContact extends CW2pObject {
     return $search;
   }
 
-  public function hook_calendar($userId) {
-    return $this->getUpcomingBirthdays($userId);
-  }
+    public function hook_calendar($userId) {
+        return $this->getUpcomingBirthdays($userId);
+    }
 }

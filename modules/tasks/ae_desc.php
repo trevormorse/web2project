@@ -29,7 +29,9 @@ $perms = &$AppUI->acl();
             ?>
 						<?php echo $AppUI->_('Access'); ?>
 						<br />
-						<?php echo arraySelect($task_access, 'task_access', 'class="text"', intval($task->task_access), true); ?>
+						<?php echo arraySelect($task->getFieldInfo('task_access', 'list'), 'task_access', 'class="text"', intval($task->task_access), true); 
+									echo w2PtoolTip($AppUI->_('Info'), $AppUI->_('Access_Info'), true) . w2PshowImage('log-info.gif') . w2PendTip();
+						?>
 						<br /><?php echo $AppUI->_('Web Address'); ?>
 						<br /><input type="text" class="text" name="task_related_url" value="<?php echo $task->task_related_url; ?>" size="40" maxlength="255" />
 					</td>

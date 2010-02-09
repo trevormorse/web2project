@@ -30,6 +30,10 @@ if ($notifyasked != 0) {
 	$notifyasked = 1;
 }
 
+if ($contact_id) {
+	$obj->load($contact_id);
+}
+
 if (!$obj->bind($_POST)) {
 	$AppUI->setMsg($obj->getError(), UI_MSG_ERROR);
 	$AppUI->redirect();
@@ -58,17 +62,22 @@ if ($del) {
 		$sql = $custom_fields->store($obj->contact_id); // Store Custom Fields
 
 		$updatekey = $obj->getUpdateKey();
+		$contact_change = false;
 		if ($notifyasked && !$updatekey) {
 			$rnow = new CDate();
 			$obj->contact_updatekey = MD5($rnow->format(FMT_DATEISO));
 			$obj->contact_updateasked = $rnow->format(FMT_DATETIME_MYSQL);
 			$obj->contact_lastupdate = '';
 			$obj->updateNotify();
+			$contact_change = true;
 		} elseif ($notifyasked && $updatekey) {
-		} else {
+		} elseif ($obj->contact_updatekey != '') {
 			$obj->contact_updatekey = '';
+			$contact_change = true;
 		}
-		$obj->store($AppUI);
+		if ($contact_change) {
+			$obj->store($AppUI);
+		}	
 
 		$AppUI->setMsg($isNotNew ? 'updated' : 'added', UI_MSG_OK, true);
 	}

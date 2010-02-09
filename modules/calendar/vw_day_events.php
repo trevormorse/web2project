@@ -75,7 +75,8 @@ if ($other_users) {
 		}
 	}
 	$html .= '</select>';
-
+	$html .= '<input type="hidden" name="date" value="'.$this_day->format(FMT_TIMESTAMP_DATE).'">';
+	
 }
 
 require_once (W2P_BASE_DIR . '/modules/calendar/links_events.php');

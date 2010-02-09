@@ -53,7 +53,7 @@ function delIt2(id) {
 </tr>
 <?php
 // Pull the task comments
- $task= new CTask();
+$task= new CTask();
 $logs = $task->getTaskLogs($task_id, $problem);
 
 $s = '';

@@ -42,8 +42,7 @@ class CTabBox extends CTabBox_core {
 			}
 		}
 
-		if ($this->active < 0 || $AppUI->getPref('TABVIEW') == 2) {
-			// flat view, active = -1
+		if ($opt_flat && ($this->active < 0 || $AppUI->getPref('TABVIEW') == 2)) {  // flat view, active = -1
 			echo '<table border="0" cellpadding="2" cellspacing="0" width="100%">';
 			foreach ($this->tabs as $k => $v) {
 				echo '<tr><td><strong>' . ($v[2] ? $v[1] : $AppUI->_($v[1])) . '</strong></td></tr><tr><td>';

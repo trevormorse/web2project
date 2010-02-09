@@ -42,8 +42,7 @@ class CTabBox extends CTabBox_core {
 			}
 		}
 
-		if ($this->active < 0 || $AppUI->getPref('TABVIEW') == 2) {
-			// flat view, active = -1
+		if ($opt_flat && ($this->active < 0 || $AppUI->getPref('TABVIEW') == 2)) {  // flat view, active = -1
 			echo '<table border="0" cellpadding="2" cellspacing="0" width="100%">';
 			foreach ($this->tabs as $k => $v) {
 				echo '<tr><td><strong>' . ($v[2] ? $v[1] : $AppUI->_($v[1])) . '</strong></td></tr><tr><td>';
@@ -124,7 +123,7 @@ class CTabBox extends CTabBox_core {
 
 function styleRenderBoxTop() {
 	global $AppUI, $currentInfoTabId;
-	$uistyle = $AppUI->getPref('UISTYLE') ? $AppUI->getPref('UISTYLE') : w2PgetConfig('host_style');
+	$uistyle = $AppUI->getPref('UISTYLE') ? $AppUI->getPref('UISTYLE') : $w2Pconfig['host_style'];
 	if (!$uistyle) {
 		$uistyle = 'web2project';
 	}
@@ -151,7 +150,7 @@ function styleRenderBoxTop() {
 
 function styleRenderBoxBottom() {
 	global $AppUI, $currentInfoTabId;
-	$uistyle = $AppUI->getPref('UISTYLE') ? $AppUI->getPref('UISTYLE') : w2PgetConfig('host_style');
+	$uistyle = $AppUI->getPref('UISTYLE') ? $AppUI->getPref('UISTYLE') : $w2Pconfig['host_style'];
 	if (!$uistyle) {
 		$uistyle = 'web2project';
 	}

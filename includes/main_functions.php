@@ -11,6 +11,65 @@ define('SECONDS_PER_DAY', 86400);
 require_once W2P_BASE_DIR . '/includes/backcompat_functions.php';
 require_once W2P_BASE_DIR . '/includes/deprecated_functions.php';
 
+$tableClasses = array(
+//	'billingcode' => array(
+//		'className' => '',
+//		'classFile' => ''
+//	),
+	'companies' => array(
+		'className' => 'CCompany',
+		'classFile' => '/modules/companies/companies.class.php'
+	),
+	'dept_time_rules' => array(
+		'className' => 'DeptTimeRules',
+		'classFile' => '/modules/timecard/depttimerules.class.php'
+	),
+	'history' => array(
+		'className' => 'CHistory',
+		'classFile' => '/modules/history/history.class.php'
+	),
+	'tasks' => array(
+		'className' => 'CTask',
+		'classFile' => '/modules/tasks/tasks.class.php'
+	),
+	'task_log' => array(
+		'className' => 'CTaskLog',
+		'classFile' => '/modules/tasks/tasks.class.php'
+	),
+	'time_log' => array(
+		'className' => 'TimeLog',
+		'classFile' => '/modules/timecard/timelog.class.php'
+	),
+	'time_log_detail' => array(
+		'className' => 'TimeLogDetail',
+		'classFile' => '/modules/timecard/timelogdetail.class.php'
+	),
+	'users' => array(
+		'className' => 'CUser',
+		'classFile' => '/modules/admin/admin.class.php'
+	),
+);
+
+function getTableClass($tblName) {
+	global $tableClasses;
+	if (array_key_exists($tblName, $tableClasses)) {
+		return $tableClasses[$tblName];
+	}
+	return false;
+}
+
+function getClassFile($className) {
+	global $tableClasses;
+	
+	foreach ($tableClasses as $k => $v) {
+		if ($v['className'] == $className) {
+			return $v['classFile'];
+		}		
+	}
+	return false;
+}
+
+
 /*
  * TODO: Personally, I'm already hating this autoloader... while it's great in
  * concept, we don't have anything that resembles a real class naming convention
@@ -18,10 +77,17 @@ require_once W2P_BASE_DIR . '/includes/deprecated_functions.php';
  * these things up for v2.0
  */
 function __autoload($class_name) {
-  global $AppUI;
+  global $AppUI, $m;
 
   $name = strtolower($class_name);
+  
+  $classFile = getClassFile($class_name);
 
+  if ($classFile) {
+    require_once W2P_BASE_DIR . $classFile;
+    return;
+  }
+  
   switch ($name) {
     case 'cappui':
       require_once W2P_BASE_DIR . '/classes/ui.class.php';
@@ -64,8 +130,11 @@ function __autoload($class_name) {
       break;
     case 'ctasklog':
       require_once W2P_BASE_DIR.'/modules/tasks/tasks.class.php';
-      break;
-    default:
+      break;      
+    case 'chistory':
+      require_once W2P_BASE_DIR.'/modules/history/history.class.php';
+      break;      
+		default:
       if (file_exists(W2P_BASE_DIR.'/classes/'.$name.'.class.php')) {
         require_once W2P_BASE_DIR.'/classes/'.$name.'.class.php';
         return;
@@ -79,10 +148,17 @@ function __autoload($class_name) {
           $name .= 's';
         }
       }
+      
       if (file_exists(W2P_BASE_DIR.'/modules/'.$name.'/'.$name.'.class.php')) {
         require_once W2P_BASE_DIR.'/modules/'.$name.'/'.$name.'.class.php';
-        return;
+        return;   
       }
+      
+      if (file_exists(W2P_BASE_DIR.'/modules/'.$m.'/'.$name.'.class.php')) {
+        require_once W2P_BASE_DIR.'/modules/'.$m.'/'.$name.'.class.php';
+        return;   
+      }
+      
       break;
   }
 }
@@ -577,11 +653,22 @@ function w2PgetParam(&$arr, $name, $def = null) {
 	global $AppUI;
 	
 	if (isset($arr[$name])) {
-		if ((strpos($arr[$name], ' ') === false && strpos($arr[$name], '<') === false
-			&& strpos($arr[$name], '"') === false && strpos($arr[$name], '[') === false
-			&& strpos($arr[$name], ';') === false && strpos($arr[$name], '{') === false) || ($arr == $_POST)) {
-				return isset($arr[$name]) ? $arr[$name] : $def;
-			} else {
+		$testVals = array();
+		
+		if (is_array($arr[$name])) {  //added support for array form fields (repeating form fields for table support)
+			$testVals = $arr[$name];
+		}
+		else {
+			$testVals[] = $arr[$name]; 
+		}
+		
+		foreach ($testVals as $aVal) {
+			if ((strpos($aVal, ' ') === false && strpos($aVal, '<') === false 
+				&& strpos($aVal, '"') === false && strpos($aVal, '[') === false 
+				&& strpos($aVal, ';') === false && strpos($aVal, '{') === false) || ($arr == $_POST)) {
+					//do nothing, keep going;
+			}
+			else {
 				/*echo('<pre>');
 				print_r(debug_backtrace());
 				echo('</pre>');
@@ -589,9 +676,13 @@ function w2PgetParam(&$arr, $name, $def = null) {
 				//Hack attempt detected
 				//return isset($arr[$name]) ? str_replace(' ','',$arr[$name]) : $def;
 				$AppUI->setMsg('Poisoning attempt to the URL detected. Issue logged.', UI_MSG_ALERT);
-				$AppUI->redirect('m=public&a=access_denied');
+				$AppUI->redirect('m=public&a=access_denied');				
 			}
-	} else {
+		}
+		
+		return $arr[$name];
+	} 
+	else {
 		return $def;
 	}
 }
@@ -683,30 +774,14 @@ function addHistory($table, $id, $action = 'modify', $description = '', $project
 	if (!w2PgetConfig('log_changes')) {
 		return;
 	}
-	$description = str_replace("'", "\'", $description);
-	$q = new DBQuery;
-	$q->addTable('modules');
-	$q->addWhere('mod_name = \'History\' and mod_active = 1');
-	$qid = $q->exec();
-
-	if (!$qid || db_num_rows($qid) == 0) {
+	
+	if (!CAppUI::isActiveModule('History')) {
 		$AppUI->setMsg('History module is not loaded, but your config file has requested that changes be logged.  You must either change the config file or install and activate the history module to log changes.', UI_MSG_ALERT);
 		$q->clear();
 		return;
 	}
 
-	$q->clear();
-	$q->addTable('history');
-	$q->addInsert('history_action', $action);
-	$q->addInsert('history_item', $id);
-	$q->addInsert('history_description', $description);
-	$q->addInsert('history_user', $AppUI->user_id);
-	$q->addInsert('history_date', $q->dbfnNow(), false, true);
-	$q->addInsert('history_project', $project_id);
-	$q->addInsert('history_table', $table);
-	$q->exec();
-	echo db_error();
-	$q->clear();
+	CHistory::addHistory($table, $id, $project_id , $action, $description);
 }
 
 ##
@@ -1344,3 +1419,14 @@ function w2p_textarea($content)
   return $result;
 }
 
+function kvArrayToJS($arr) {
+	$s = '';
+	
+	foreach ($arr as $k => $v) {
+		if ($s != '') {
+			$s .= ',';
+		}
+		$s .= '"'.$k.'":"'.$v.'"';
+	}
+	return $s;
+}

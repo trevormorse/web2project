@@ -29,7 +29,7 @@ if ($task_log_id) {
 	$log->task_log_name = $obj->task_name;
 }
 
-// Check that the user is at least assigned to a task
+// Check that the user can at least access the task
 $task = new CTask;
 $task->load($task_id);
 if (!$task->canAccess($AppUI->user_id)) {
@@ -38,22 +38,8 @@ if (!$task->canAccess($AppUI->user_id)) {
 
 $proj = new CProject();
 $proj->load($obj->task_project);
-$q = new DBQuery();
-$q->addTable('billingcode');
-$q->addQuery('billingcode_id, billingcode_name');
-$q->addWhere('billingcode_status=0');
-$q->addWhere('(company_id=' . $proj->project_company . ' OR company_id = 0)');
-$q->addOrder('billingcode_name');
 
-$task_log_costcodes[0] = '';
-$rows = $q->loadList();
-echo db_error();
-$nums = 0;
-foreach ($rows as $key => $row) {
-	$task_log_costcodes[$row['billingcode_id']] = $row['billingcode_name'];
-}
-
-$taskLogReference = w2PgetSysVal('TaskLogReference');
+$task_log_costcodes =  array(0 => '') + CProject::getBillingCodes($proj->project_company); //changed BMC
 
 // Task Update Form
 $df = $AppUI->getPref('SHDATEFORMAT');
@@ -65,7 +51,6 @@ $log_date = new CDate($log->task_log_date);
 	// please keep these lines on when you copy the source
 	// made by: Nicolas - http://www.javascript-page.com
 	// adapted by: Juan Carlos Gonzalez jcgonz@users.sourceforge.net
-	
 	var timerID       = 0;
 	var tStart        = null;
     var total_minutes = -1;
@@ -78,7 +63,6 @@ $log_date = new CDate($log->task_log_date);
 	
        // One minute has passed
        total_minutes = total_minutes+1;
-	   
 	   document.getElementById('timerStatus').innerHTML = '( '+total_minutes+' <?php echo $AppUI->_('minutes elapsed'); ?> )';
 
 	   // Lets round hours to two decimals
@@ -172,9 +156,9 @@ function setDate( frm_name, f_date ) {
 		<table>
 		   <tr>
 		      <td>
-<?php
-echo ($canEditTask ? arraySelect($percent, 'task_percent_complete', 'size="1" class="text"', $obj->task_percent_complete) . '%' : '<input type="hidden" name="task_percent_complete" value="0" />');
-?>
+				<?php
+					echo ($canEditTask ? arraySelect($obj->getFieldInfo('task_percent_complete', 'list'), 'task_percent_complete', 'size="1" class="text"', $obj->task_percent_complete) . '%' : '<input type="hidden" name="task_percent_complete" value="0" />');
+				?>
 		      </td>
 		      <td valign="middle" >
 			<?php
@@ -199,7 +183,7 @@ if ($obj->task_owner != $AppUI->user_id) {
 	</td>
 </tr>
 <tr>
-        <td align="right">
+  <td align="right">
 		<?php echo $AppUI->_('Cost Code'); ?>
 	</td>
 	<td>
@@ -251,7 +235,7 @@ if ($obj->canUserEditTimeInformation() && $canEditTask) {
 <tr>
     <td align="right" valign="middle"><?php echo $AppUI->_('Reference'); ?>:</td>
     <td valign="middle">
-        <?php echo arraySelect($taskLogReference, 'task_log_reference', 'size="1" class="text"', $log->task_log_reference, true); ?>
+        <?php echo arraySelect($log->getFieldInfo('task_log_reference', 'list'), 'task_log_reference', 'size="1" class="text"', $log->task_log_reference, true); ?>
 	</td>
 </tr>
 <tr>
@@ -310,10 +294,19 @@ $q->clear();
 ?>
 		<input type="checkbox" name="email_assignees" id="email_assignees" <?php echo ($ta ? 'checked="checked"' : '');?> /><label for="email_assignees"><?php echo $AppUI->_('Task Assignees'); ?></label>
 		<input type="hidden" name="email_task_list" id="email_task_list" value="<?php echo implode(',', $cidtc);?>" />
-		<input type="checkbox" onmouseover="window.status = '<?php echo addslashes(implode(',', $task_email_title)); ?>';" onmouseout="window.status = '';" name="email_task_contacts" id="email_task_contacts" <?php echo ($tt ? 'checked="checked"' : ''); ?> /><label for="email_task_contacts"><?php echo $AppUI->_('Task Contacts'); ?></label>
+
+		<?php if ($task_email_title) { echo w2PtoolTip('Contacts', implode(',', $task_email_title), true); } ?>
+		<input type="checkbox" name="email_task_contacts" id="email_task_contacts" <?php echo ($tt ? 'checked="checked"' : ''); ?> /> 
+		<?php if ($task_email_title) { echo w2PendTip(); } ?>
+		<label for="email_task_contacts"><?php echo $AppUI->_('Task Contacts'); ?></label> 
 		<input type="hidden" name="email_project_list" id="email_project_list" value="<?php echo implode(',', $cidpc); ?>" />
-		<input type="checkbox" onmouseover="window.status = '<?php echo addslashes(implode(',', $proj_email_title)); ?>';" onmouseout="window.status = '';" name="email_project_contacts" id="email_project_contacts" <?php echo ($tp ? 'checked="checked"' : ''); ?> /><label for="email_project_contacts"><?php echo $AppUI->_('Project Contacts'); ?></label>
+		
+		<?php	if ($proj_email_title) { echo w2PtoolTip('Contacts', implode(',', $proj_email_title), true); } ?>
+		<input type="checkbox" name="email_project_contacts" id="email_project_contacts" <?php echo ($tp ? 'checked="checked"' : '');?> />
+		<?php if ($proj_email_title) { echo w2PendTip(); } ?>
+		<label for="email_project_contacts"><?php echo $AppUI->_('Project Contacts'); ?></label>  
 		<input type='hidden' name='email_others' id='email_others' value='' />
+		
 		<?php if ($AppUI->isActiveModule('contacts') && $perms->checkModule('contacts', 'view')) { ?>
 			<input type='button' class='button' value='<?php echo $AppUI->_('Other Contacts...'); ?>' onclick='javascript:popEmailContacts();' />
 		<?php } ?>

@@ -1,0 +1,219 @@
+classes/query.class.php:
+	-Fix ordering of comments on DbQuery properties
+	-Added MetaColumns function to expose Adodb function of same name to 
+	 be used to retrieve column type information.
+	-Refactored function bindHashToObject 
+	-Change all occurrences of get_object_vars to retrieve fields by a new 
+	 function called getFieldVars
+	-Added function getFieldVars. Will use the CW2pObject function of the same
+	 name if the passed in object is a CW2pObject. Otherwise it will revert to
+	 the original get_object_vars. Also internally does the type and name tests 
+	 here.
+	 
+classes/ui.class.php:
+	-Made function isActiveModule static
+	
+classes/w2p.class.php
+	-Extensive changes to the class in order to support extended functionality 
+  with array based column properties that are made to support change tracking
+  and generally hold metadata on fields. The change to the table class is to
+  rename the column properties to start with '__' (2 underscores), to provide
+  an _initFields() method to initialize the property arrays and updating the
+  constructor to set the metadata argument to true. The content of the array
+  for each field should at least have a 'value' element. Other currently used
+  elements are:
+	 		-pk: set to true to identify pk field
+	 		-tracked : set to true to identify fields whose updates should be
+                 tracked in history
+	 		-type: set to one of the special values, otherwise it will get set 
+              automatically based on the column type in the db (through a call
+              to MetaColumns). The special types are currently:
+	 		 			 		-table_select: indicates a field whose value represents a pk
+                                from the identified table. Columns with this
+                                value should also provide select_table and
+                                select_field values as well.
+	 		 			 	  -mutli_table_select: just like table_select, but here the 
+                                column stores a comma separated list of pk
+                                values. Requirements are similar.
+	 		 			 	  -select_table: Used with table_select to identify the name of 
+                                the table whose id is stored.
+	 		 			 	  -select_field: Used with table_select to identify the name of
+                                the field or function to return from the
+                                select_table when displaying information from
+                                the selection. Functions should be preceded
+                                with a '#' sign and should exist in the class
+                                for the select_table.
+	 		 			 		-checkbox: indicates a checkbox field with value 0 = unselected
+                                and 1 = selected.
+	 		 			 		-numeric(x,y): indicates a numeric fields with x as the size
+                                and y as the precision.Rounding will happen
+                                when testing value changes. Normally these are
+                                float type columns
+	 		 			 		-select: indicates a field that provides a selection for the
+                          user. Most often these come from the getSysVal.
+                          Columns with this value should also provide list
+                          value as well.
+	 		 			 		-list: Associative array of selection for the field. These were
+                        often constructed in page headers. Now better to set
+                        here and retrieve from here instead with
+                        $tblClass->getFieldInfo('column_name', 'list')
+	 This is implemented through the following new functions:
+	 	-__get
+	 	-__set
+	 	-__isset
+	 	-__unset
+	 	-getFieldInfo
+	 	-setFieldInfo
+	 	-getFieldVars
+	-Added property $_tbl_metadata to identify table class that support extended
+    metadata
+	-Added optional argument to constructor to get metadata status
+	-In __get, provided support for executing arbitrary no-arg functions, such
+    as used by select_field.
+	-Split function load into load and loadBase. loadBase should be 'final' and 
+    is used to avoid calling expanded version that might interfere with basic
+    operations.
+	-Change all occurrences of get_object_vars to retrieve fields by a new 
+	 function called getFieldVars
+	-Modified store function to now support using the new addUpdateHistory that
+    is used to track field changes
+	-Added functions getProjectId and getHistoryDescription and provided the
+    existing default implementation. Subclasses are invited to provide their
+    own implementation in order to provide more appropriate information,
+    without having to re-implement the store method.
+	-Added function completeFieldTypes that is designed to be used at the end of 
+    the _initFields function to retrieve and set the type of all columns
+    without a predefined type.
+	-Added function addUpdateHistory that is able to check for field changes
+    during an update and to populate the history_changes column in the history
+    table. It will also make sure to not create history records for updates
+    that actually don't change anything.
+	-Added private functions isChanged and emptyDate, used by addUpdateHistory.
+	    
+includes/main-functions.php
+	-In _autoload:
+			-Removed unecessary $m from global list
+			-Added resolution for CHistory
+	-Refactored addHistory by moving some basic code to the history class where 
+    it can be shared (and is shared with w2p.class)
+
+modules/admin/admin.class.php
+	-Added function getFullUserName to CUser. Used by the history view (declared
+    as a select_field)
+
+modules/companies/companies.class.php
+	-Implemented getHistoryDescription for CCompany
+	
+modules/companies/vw_companies.php
+	-Minor fix to pass raw argument to tooltip in order to avoid loosing
+    uppercase characters.
+		
+modules/history/history.class.php
+	-Added function addHistory, which is mostly coming from the function of the
+    same name in main_functions.
+
+modules/history/index.php
+	-Extensive changes here
+	-First fix issue with task log showing as task, added $extra variable since
+    module was not sufficient
+	-Next fix issue with task log href always using task_id 170, now retrieving
+    correct task_id for task_log
+	-Added function show_project and a column of the same name to the view.
+	-Added function show_changes and a column of the same name to the view. This 
+    is the main thrust of the changes that now allow us to view field level
+    changes to records.
+	-Added utility function remove_plural
+	-Added ability to pass an item_id in the URL in order to filter not only on
+    a type, but on a specific item (accessible now through the task view)
+	-Improved query by using left joins instead of adding tables and where
+    clauses. This also speeds up the count query.
+	-Added column to form for project name and changes
+
+modules/projects/admin_tab.viewuser.projects.php
+	-Re-Added require_once for module class project. This is not loaded since 
+    this class is called from the user view (system module) and thus doesn't
+    pick up the module class.
+
+modules/tasks/addedit.php
+	-Removed $percent, $status, $priority, $task_access as they are now handled
+    in _initFields for the CTask class
+	-Changed arraySelect to now use the class info instead of the removed
+    variables.
+
+modules/tasks/ae_desc.php
+	-Changed arraySelect to now use the class info instead of the removed
+    variables.
+
+modules/tasks/tasks.class.php
+	-Removed $percent, $status, $priority, $task_access as they are now handled
+    in _initFields for the CTask class
+	-In CTask:
+			-Renamed task column properties by prefixing with '__' to use new
+        functionality
+			-Modified __construct to pass metadata argument to parent constructor
+			-Added call to new function _initFields
+			-Added new function _initFields
+			-Implemented getProjectId and getHistoryDescription 
+			-Modified function store to call new addUpdateHistory on update and use 
+        now functions on addHistory when simply adding new tasks
+			-Fix to getAssignedUsers to RET contact_email (see bug in view.php below)
+	-In CTaskLog:
+			-Renamed task column properties by prefixing with '__' to use new
+        functionality
+			-Modified constructor (renamed to __construct) to pass metadata argument
+        to parent constructor
+			-Added call to new function _initFields
+			-Added new function _initFields
+			-Implemented getProjectId and getHistoryDescription
+			-Added static function getTaskId to allow history view to retrieve task
+        id for a log entry
+
+modules/tasks/view.php
+	-Added crumb to go to view history for a specific task
+	-In assigned users, changed the $row['user_email'] to $row['contact_email']
+    as the first didn't exist.
+
+modules/tasks/vw_log_update.php
+	-Remove $percent global
+	-Remove $taskLogReference
+	-Changed arraySelect to now use the class NFO instead of the removed variables
+
+==============================================================================
+
+main_functions:
+	Changed autoload to support missing tasklog and also to autoload any module
+    local class that follows the naming convention.
+
+baseupgrademanager.class:
+	Create this new class from code initially in manager.class so that it can be
+    shared with module install and upgrades
+
+manager.class:
+	Adapted after having refactored to extend the BaseUpgradeManager class
+
+projectdesigner/configure
+	Adapted to use the new module configuration functionality in system
+
+projectdesigner/projectdesigner.class
+	Add new CProjectDesignerConfigure class to support new module configuration
+    functionality. This code is mostly moved from configure.
+
+system/configure.class
+	Add new class to provide a consistent framework for module configuration
+	forms. The new class adds general support for headings, radio buttons, system
+	updateable configuration options and tooltip support just like the regular
+	system configuration.
+
+system/domodsql
+	Code formatting only
+
+system/upgrade_manager.class
+	New class that extends the base upgrade manager and that is made to be used
+	by modules (as opposed to the base install/upgrade functionality)
+
+Not part of the changes but included as an example implementation of the new
+  config form and upgrade functionality is some timecard module files:
+
+configure.php
+setup.php
+timecard.class.php

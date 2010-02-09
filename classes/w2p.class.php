@@ -30,6 +30,12 @@ class CW2pObject {
 	 *	@var string Name of the primary key field in the table
 	 */
 	public $_tbl_key = '';
+	
+	/**
+	 *	@var string Name of the primary key field in the table
+	 */
+	public $_tbl_metadata = '';
+	
 	/**
 	 *	@var string Error message
 	 */
@@ -47,9 +53,10 @@ class CW2pObject {
 	 *	@param string $table name of the table in the db schema relating to child class
 	 *	@param string $key name of the primary key field in the table
 	 */
-	public function __construct($table, $key) {
+	public function __construct($table, $key, $hasMetadata = false) {
 		$this->_tbl = $table;
 		$this->_tbl_key = $key;
+		$this->_tbl_metadata = $hasMetadata;
 		$this->_tbl_prefix = w2PgetConfig('dbprefix', '');
 		$this->_query = new DBQuery;
 	}
@@ -60,6 +67,102 @@ class CW2pObject {
 	public function getError() {
 		return $this->_error;
 	}
+	
+	public function __set($name, $value) {
+  	if ($this->_tbl_metadata and substr($name, 0, 2) != '__') {  //avoid looking if already expanded
+  		$fname = '__'.$name;
+  		if (isset($this->{$fname})) {
+  			$this->{$fname}['value'] = $value;
+    		return;
+  		}
+  	}
+   	$this->$name = $value;
+  }
+	
+	public function __get($name) {
+  	if ($this->_tbl_metadata and substr($name, 0, 2) != '__') {  //avoid looking if already expanded
+  		$fname = '__'.$name;
+  		if (isset($this->{$fname})) {
+  			return $this->{$fname}['value'];
+  		}
+  	}
+
+  	if (substr($name, 0, 1) == '#') {  //represents a dynamic function call
+  		$fctnName = substr($name, 1);
+  		return call_user_func(array($this, $fctnName));
+  	}
+  	
+		$trace = debug_backtrace();
+		trigger_error(
+			'Undefined property via __get(): ' . $name .
+			' in ' . $trace[0]['file'] .
+			' on line ' . $trace[0]['line'],
+			E_USER_NOTICE
+		);
+		return null;
+  }	
+	
+	public function __isset($name) {
+  	if ($this->_tbl_metadata and substr($name, 0, 2) != '__') {  //avoid looking if already expanded
+  		$fname = '__'.$name;
+  		if ($name == 'contact_birthday') {
+  			$x=1;
+  		}
+  		return isset($this->{$fname}['value']);
+  	}
+		return false;		
+	}
+  
+	public function __unset($name) {
+  	if ($this->_tbl_metadata and substr($name, 0, 2) != '__') {  //avoid looking if already expanded
+  		$fname = '__'.$name;
+  		unset($this->{$fname}['value']);
+  	}
+	}
+	
+	public function getFieldInfo($name, $key) {
+  	if ($this->_tbl_metadata and substr($name, 0, 2) != '__') {  //avoid looking if already expanded
+  		$fname = '__'.$name;
+  		if (isset($this->{$fname})) {
+  			if (isset($this->{$fname}[$key])) {
+  				return $this->{$fname}[$key];
+  			}
+  		}
+  	}
+		return null;
+	}
+	
+	public function setFieldInfo($name, $key, $value) {
+  	if ($this->_tbl_metadata and substr($name, 0, 2) != '__') {  //avoid looking if already expanded
+  		$fname = '__'.$name;
+  		if (isset($this->{$fname})) {
+    		$this->{$fname}[$key] = $value;
+  		}
+  	}
+	}
+	
+	public function getFieldVars() {
+		$fld_vars = array();
+		
+		if ($this->_tbl_metadata) {
+			foreach (get_object_vars($this) as $k => $v) {
+				if (is_array($v) and $k[0] == '_' and $k[1] == '_') { //indicates a field property
+					$fld_vars[substr($k, 2)] = $v['value'];
+				}
+			}
+		}
+		else {
+			foreach (get_object_vars($this) as $k => $v) {
+				if (is_array($v) or is_object($v) or $k[0] == '_') { // internal or NA field
+					continue;
+				}
+				
+				$fld_vars[$k] = $v;
+			}
+		}
+		return $fld_vars;
+	}
+	
 	/**
 	 *	Binds a named array/hash to this object
 	 *
@@ -83,7 +186,7 @@ class CW2pObject {
 			*/
 			foreach ($hash as $k => $v) {
 				if (!(is_object($hash[$k]))) {
-          $filtered_hash[$k] = (is_string($v)) ? strip_tags($v) : $v;
+                    $filtered_hash[$k] = (is_string($v)) ? strip_tags($v) : $v;
 				}
 			}
 			$this->_query->bindHashToObject($filtered_hash, $this, $prefix, $checkSlashes, $bindAll);
@@ -98,6 +201,10 @@ class CW2pObject {
 	 *	@return any result from the database operation
 	 */
 	public function load($oid = null, $strip = true) {
+		return $this->loadBase($oid, $strip);
+	}
+	
+	public function loadBase($oid = null, $strip = true) {
 		$k = $this->_tbl_key;
 		if ($oid) {
 			$this->$k = intval($oid);
@@ -106,14 +213,17 @@ class CW2pObject {
 		if ($oid === null) {
 			return false;
 		}
+		
 		$this->_query->clear();
 		$this->_query->addTable($this->_tbl);
 		$this->_query->addWhere($this->_tbl_key . ' = ' . $oid);
 		$hash = $this->_query->loadHash();
+		
 		//If no record was found send false because there is no data
 		if (!$hash) {
 			return false;
 		}
+		
 		$this->_query->bindHashToObject($hash, $this, null, $strip);
 		$this->_query->clear();
 		return $this;
@@ -188,7 +298,8 @@ class CW2pObject {
 	 *	@return none
 	 */
 	public function w2PTrimAll() {
-		$trim_arr = get_object_vars($this);
+		$trim_arr = $this->getFieldVars();
+
 		foreach ($trim_arr as $trim_key => $trim_val) {
 			if (!(strcasecmp(gettype($trim_val), 'string'))) {
 				$this->{$trim_key} = trim($trim_val);
@@ -200,20 +311,31 @@ class CW2pObject {
 	 *	Inserts a new row if id is zero or updates an existing row in the database table
 	 *
 	 *	Can be overloaded/supplemented by the child class
-	 *	@return null|string null if successful otherwise returns and error message
+	 *	@return null|string null if successful otherwise returns an error message
 	 */
-	public function store($updateNulls = false) {
+	public function store($updateNulls = false, $updateHistory = true) {
 		global $AppUI;
 
 		$this->w2PTrimAll();
-
 		$msg = $this->check();
+		
 		if ($msg) {
 			return get_class($this) . '::store-check failed ' . $msg;
 		}
 		$k = $this->_tbl_key;
+		
 		if ($this->$k) {
 			$store_type = 'update';
+			
+			if ($this->_tbl_metadata) { 
+				$className = get_class($this);
+				$orgObj = new $className;
+				$orgObj->loadBase($this->getFieldInfo($this->_tbl_key, 'value'), false);
+			}
+			else {
+				$orgObj = null;
+			}
+			
 			$q = new DBQuery;
 			$ret = $q->updateObject($this->_tbl, $this, $this->_tbl_key, $updateNulls);
 			$q->clear();
@@ -224,13 +346,31 @@ class CW2pObject {
 			$q->clear();
 		}
 
-		if ($ret) {
+		if ($ret && $updateHistory) {
 			// only record history if an update or insert actually occurs.
-			addHistory($this->_tbl, $this->$k, $store_type, $AppUI->_('ACTION') . ': ' . $store_type . ' ' . $AppUI->_('TABLE') . ': ' . $this->_tbl . ' ' . $AppUI->_('ID') . ': ' . $this->$k);
+			if ($store_type == 'add') {
+				addHistory($this->_tbl, $this->$k, $store_type, $this->getHistoryDescription($store_type), $this->getProjectId());
+			}
+			else {
+				$this->addUpdateHistory($orgObj, $this->getHistoryDescription($store_type), $this->getProjectId());
+			}
 		}
+
 		return ((!$ret) ? (get_class($this) . '::store failed ' . db_error()) : null);
 	}
+	
+	protected function getProjectId() {
+		return 0;
+	}
 
+	protected function getHistoryDescription($store_type) {
+		global $AppUI;
+		
+		$s = '';
+		$s .= $AppUI->_('ACTION') . ': ' . $store_type . ' ' . $AppUI->_('TABLE') . ': ' . $this->_tbl . ' ' . $AppUI->_('ID') . ': ' . $this->_tbl_key; 
+		return $s;
+	}
+	
 	/**
 	 *	Generic check for whether dependencies exist for this object in the db schema
 	 *
@@ -315,7 +455,7 @@ class CW2pObject {
 		
 		if (!$result) {
 			// only record history if deletion actually occurred
-			addHistory($this->_tbl, $this->$k, 'delete');
+			addHistory($this->_tbl, $this->$k, 'delete', $this->getHistoryDescription($store_type));
 		}
 		$q->clear();
 		return $result;
@@ -499,14 +639,130 @@ class CW2pObject {
 	* Decode HTML entities in object vars
 	*/
 	public function htmlDecode() {
-		foreach (get_object_vars($this) as $k => $v) {
-			if (is_array($v) or is_object($v) or $v == null) {
-				continue;
-			}
-			if ($k[0] == '_') { // internal field
+		foreach ($this->getFieldVars() as $k => $v) {
+			if ($v == null) {
 				continue;
 			}
 			$this->$k = htmlspecialchars_decode($v);
 		}
 	}
+
+	protected function completeFieldTypes() {
+		$fldArr = $this->_query->MetaColumns($this->_tbl);			
+		
+		foreach ($this->getFieldVars() as $k => $v) {
+			if (!$this->getFieldInfo($k, 'type')) {
+				$fldTypeInfo = $fldArr[strtoupper($k)];
+				$this->setFieldInfo($k, 'type', $fldTypeInfo->type . '(' . $fldTypeInfo->max_length . ')');
+			}
+		}
+	}
+	
+	protected function addUpdateHistory($orgObj, $description, $project_id = 0) {
+		if (!w2PgetConfig('log_changes')) {
+			return;
+		}
+
+		if (!CAppUI::isActiveModule('History')) {
+			$AppUI->setMsg('History module is not loaded, but your config file has requested that changes be logged.  You must either change the config file or install and activate the history module to log changes.', UI_MSG_ALERT);
+			$q->clear();
+			return;
+		}
+
+		$changes = '';
+		
+		if ($this->_tbl_metadata) { 
+			//figure out the changes
+			$chgArr = array();
+			foreach ($this->getFieldVars() as $k => $v) {
+				if ($this->getFieldInfo($k, 'tracked')) {
+					if ($this->isChanged($k, $orgObj)) {
+						$chgArr[$k] = array(
+							'type' => $this->getFieldInfo($k, 'type'),
+							'orgValue' => $orgObj->{$k},
+							'newValue' => $this->{$k},
+						);  	
+					}	
+				}
+			}
+	
+			foreach ($chgArr as $k => $v) {
+				$changes .= '"' . $k . '","' . $v['type'] . '","' .  strtr($v['orgValue'], '"', '""') . '","' . strtr($v['newValue'], '"', '""') . '"' . "\n";
+			}
+		}
+				
+		if (!$this->_tbl_metadata or $changes != '') {
+			CHistory::addHistory($this->_tbl, $this->{$this->_tbl_key}, $project_id , 'update', $description, $changes);
+		}
+	}
+	
+	private function isChanged($k, &$orgObj) {
+		if (htmlspecialchars_decode($this->{$k}) == htmlspecialchars_decode($orgObj->{$k})) {
+			return false;
+		}
+		
+		$type = $this->getFieldInfo($k, 'type');
+		
+		if (substr($type, 0, 8) == 'numeric(') {
+			$matches = array();
+			preg_match('{numeric\((?P<length>\d+),(?P<prec>\d+)\)}', $type, $matches);
+
+			if (isset($matches['prec'])) {
+				$prec = $matches['prec'];
+				if (round($this->{$k}, $prec) == round($orgObj->{$k}, $prec)) {
+					return false;
+				}
+			}
+		}
+		else if (substr($type, 0, 9) == 'datetime(') {
+			if ($this->emptyDate($this->{$k}) and $this->emptyDate($orgObj->{$k})) {
+				return false;
+			}
+		}
+		
+		return true;
+	}
+	
+	private function emptyDate($str) {
+		if (empty($str) or $str == '0000-00-00 00:00:00') {
+			return true;
+		}
+		return false;
+	}
+	
+	public function resolveFieldValue($fname, $baseValue) {
+		global $AppUI;
+		
+		$value = $baseValue;
+		$fldType = $this->getFieldInfo($fname, 'type');
+		
+		if ($fldType == 'select') {
+			$list = $this->getFieldInfo($fname, 'list');
+			$value = array_key_exists($value, $list) ? $list[$value] : $value;
+		}
+		else if ($fldType == 'table_select') {
+			$tbl = $this->getFieldInfo($fname, 'select_table');
+			$fld = $this->getFieldInfo($fname, 'select_field');
+			$tblClassArr = getTableClass($tbl);
+			
+			if ($tblClassArr !== false) {
+				$tblObj = new $tblClassArr['className'];
+				$tblObj->loadBase($value, false);
+				$value = $tblObj->{$fld};
+			}
+		}
+		else if ($fldType == 'checkbox') {
+			$value = (empty($value) or $value == '0') ? $AppUI->_('unselected') : $AppUI->_('selected');
+		}
+		
+		return $value;		
+	}
+	
+//	public function isFieldUpdated($fname) {
+//		$className = get_class($this);
+//		$orgObj = new $className;
+//		$orgObj->loadBase($this->getFieldInfo($this->_tbl_key, 'value'), false);
+//		
+//		return isChanged($k, $orgObj);
+//	}
 }

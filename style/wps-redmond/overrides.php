@@ -7,7 +7,7 @@ class CTitleBlock extends CTitleBlock_core {
 ##  This overrides the show function of the CTabBox_core function
 ##
 class CTabBox extends CTabBox_core {
-	function show($extra = '', $js_tabs = false) {
+	function show($extra = '', $js_tabs = false, $alignment = 'left', $opt_flat = true) {
 		global $AppUI, $w2Pconfig, $currentTabId, $currentTabName, $m, $a;
 		$this->loadExtras($m, $a);
 		$uistyle = $AppUI->getPref('UISTYLE') ? $AppUI->getPref('UISTYLE') : $w2Pconfig['host_style'];
@@ -18,21 +18,24 @@ class CTabBox extends CTabBox_core {
 		$s = '';
 		// tabbed / flat view options
 		if ($AppUI->getPref('TABVIEW') == 0) {
-			$s .= '<table border="0" cellpadding="2" cellspacing="0" width="100%"><tr><td nowrap="nowrap">';
-			$s .= '<a href="' . $this->baseHRef . 'tab=0">' . $AppUI->_('tabbed') . '</a> : ';
-			$s .= '<a href="' . $this->baseHRef . 'tab=-1">' . $AppUI->_('flat') . '</a>';
-			$s .= '</td>' . $extra . '</tr></table>';
-			echo $s;
+			if ($opt_flat) {
+				$s .= '<table border="0" cellpadding="2" cellspacing="0" width="100%">';
+				$s .= '<tr>';
+				$s .= '<td nowrap="nowrap">';
+				$s .= '<a href="' . $this->baseHRef . 'tab=0">' . $AppUI->_('tabbed') . '</a> : ';
+				$s .= '<a href="' . $this->baseHRef . 'tab=-1">' . $AppUI->_('flat') . '</a>';
+				$s .= '</td>' . $extra . '</tr></table>';
+				echo $s;
+			}
 		} else {
 			if ($extra) {
-				echo '<table border="0" cellpadding="2" cellspacing="0" width="100%"><tr>' . $extra . '</tr></table>';
+				echo '<table border="0" cellpadding="2" cellspacing="0" width="100%"><tr>' . $extra . '</tr>' . '</table>';
 			} else {
 				echo '<img src="./style/'.$uistyle.'/images/shim.gif" height="10" width="1" alt="" />';
 			}
 		}
 
-		if ($this->active < 0 || $AppUI->getPref('TABVIEW') == 2) {
-			// flat view, active = -1
+		if ($opt_flat && ($this->active < 0 || $AppUI->getPref('TABVIEW') == 2)) {  // flat view, active = -1
 			echo '<table border="0" cellpadding="2" cellspacing="0" width="100%">';
 			foreach ($this->tabs as $k => $v) {
 				echo '<tr><td><strong>' . ($v[2] ? $v[1] : $AppUI->_($v[1])) . '</strong></td></tr><tr><td>';
@@ -44,7 +47,8 @@ class CTabBox extends CTabBox_core {
 			echo '</table>';
 		} else {
 			// tabbed view
-			$s = '<table width="100%" border="0" cellpadding="0" cellspacing="0"><tr><td><table border="0" cellpadding="0" cellspacing="0">';
+			$s = '<table width="100%" border="0" cellpadding="0" cellspacing="0">';
+			$s .= '<tr><td><table align="' . $alignment . '" border="0" cellpadding="0" cellspacing="0">';
 
 			if (count($this->tabs) - 1 < $this->active) {
 				//Last selected tab is not available in this view. eg. Child tasks
@@ -62,7 +66,7 @@ class CTabBox extends CTabBox_core {
 				}
 				$s .= '>&nbsp;<a href="';
 				if ($this->javascript) {
-					$s .= 'javascript:' . $this->javascript . "({$this->active}, $k)";
+					$s .= 'javascript:' . $this->javascript . '(' . $this->active . ', ' . $k . ')';
 				} elseif ($js_tabs) {
 					$s .= 'javascript:show_tab(' . $k . ')';
 				} else {

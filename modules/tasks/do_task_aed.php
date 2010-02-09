@@ -9,6 +9,7 @@ function setItem($item_name, $defval = null) {
 	}
 	return $defval;
 }
+
 $adjustStartDate = w2PgetParam($_POST, 'set_task_start_date');
 $del = (int) w2PgetParam($_POST, 'del', 0);
 $task_id = (int) w2PgetParam($_POST, 'task_id', 0);
@@ -146,7 +147,7 @@ if ($sub_form) {
 	// prepare (and translate) the module name ready for the suffix
 	if ($del) {
 		$result = $obj->delete();
-    if (is_array($result)) {
+    	if (is_array($result)) {
 			$AppUI->setMsg($msg, UI_MSG_ERROR);
 			$AppUI->redirect();
 		} else {
@@ -224,7 +225,6 @@ if ($sub_form) {
         if (empty($obj->task_start_date)) {
           // appropriately calculated end date via start+duration
           $ned->addDuration($obj->task_duration, $obj->task_duration_type);
-
         } else {
           // calc task time span start - end
           $d = $tsd->calcDuration($ted);
@@ -233,7 +233,6 @@ if ($sub_form) {
           // This is independent from $obj->task_duration.
           // The value returned by Date::Duration() is always in hours ('1')
           $ned->addDuration($d, '1');
-
         }
 
         // prefer tue 16:00 over wed 8:00 as an end date
@@ -253,8 +252,8 @@ if ($sub_form) {
       }
       $obj->pushDependencies($obj->task_id, $obj->task_end_date);
     }
-    // If there is a set of post_save functions, then we process them
 
+    // If there is a set of post_save functions, then we process them
     if (isset($post_save)) {
       foreach ($post_save as $post_save_function) {
         $post_save_function();

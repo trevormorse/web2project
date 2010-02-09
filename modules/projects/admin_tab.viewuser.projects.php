@@ -35,8 +35,10 @@ $orderdir = $AppUI->getState('UsrProjIdxOrderDir') ? $AppUI->getState('UsrProjId
 
 $extraGet = '&user_id=' . $user_id;
 
+//require is needed since this is a cross module load for a globabl function (projects_list_data)
+require_once($AppUI->getModuleClass('projects'));
+
 // collect the full projects list data via function in projects.class.php
-$project = new CProject();
 projects_list_data($user_id);
 ?>
 

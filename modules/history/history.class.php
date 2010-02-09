@@ -39,4 +39,25 @@ class CHistory extends CW2pObject {
     return true;
   }
 
+  public static function addHistory($table, $id, $project_id = 0, $action = 'modify', $description = '', $changes = '') {
+		global $AppUI;
+		$q = new DBQuery;
+		
+		$description = str_replace("'", "\'", $description);
+		$changes = str_replace("'", "\'", $changes);
+		
+		$q->clear();
+		$q->addTable('history');
+		$q->addInsert('history_action', $action);
+		$q->addInsert('history_item', $id);
+		$q->addInsert('history_description', $description);
+		$q->addInsert('history_changes', $changes);
+		$q->addInsert('history_user', $AppUI->user_id);
+		$q->addInsert('history_date', $q->dbfnNow(), false, true);
+		$q->addInsert('history_project', $project_id);
+		$q->addInsert('history_table', $table);
+		$q->exec();
+		echo db_error();
+		$q->clear();
+  }
 }

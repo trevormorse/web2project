@@ -50,6 +50,10 @@ class CCompany extends CW2pObject {
 	  parent::__construct('companies', 'company_id');
 	}
 
+	protected function getHistoryDescription($store_type) {
+		return $this->company_name;
+	}
+	
 	// overload check
 	public function check() {
 	  $errorArray = array();

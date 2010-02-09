@@ -133,6 +133,17 @@ class CDate extends Date {
 	}
 
 	/**
+	 * New method to compdare dates based on the difference in days from the stored date
+	 * @param Date The date to compare to
+	 */
+	public function dayDiff($when) {
+		if (!is_object($when)) {
+			return false;
+		}
+		return Date_calc::dayDiff($this->getDay(), $this->getMonth(), $this->getYear(), $when->getDay(), $when->getMonth(), $when->getYear());
+	}
+	
+	/**
 	 * New method that sets hour, minute and second in a single call
 	 * @param int hour
 	 * @param int minute

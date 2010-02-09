@@ -162,6 +162,15 @@ class DBQuery {
 		return $this->_db->IfNull($field, $nullReplacementValue);
 	}
 
+	/** Call database to retrieve column meta information
+	 *
+	 * Calls the ADODB MetaColumns method
+	 * @return Array of ADOFieldObjects for current table.
+	 */
+	public function MetaColumns($table) {
+		return $this->_db->MetaColumns($table,false);
+	}
+
 	/** Add item to an internal associative array
 	 *
 	 * Used internally with DBQuery
@@ -1204,10 +1213,10 @@ class DBQuery {
 	 * @param $index Can be used to set the keys of the resulting arrays, useful to find records by primary key.
 	 * @return Array of associative arrays containing row field values
 	 */
-	public function loadList($maxrows = -1, $index = -1) {
+	public function loadList($maxrows = -1, $index = -1, $debug = false) { //added arg BMC
 		global $AppUI;
 
-		if (!$this->exec(ADODB_FETCH_ASSOC)) {
+		if (!$this->exec(ADODB_FETCH_ASSOC, $debug)) {
 			$AppUI->setMsg($this->_db->ErrorMsg(), UI_MSG_ERROR);
 			$this->clear();
 			return false;
@@ -1357,17 +1366,9 @@ class DBQuery {
 				$obj->$k = ($checkSlashes && get_magic_quotes_gpc()) ? stripslashes(w2PHTMLDecode($hash[$k])) : w2PHTMLDecode($hash[$k]);
 			}
 		} else {
-			if ($prefix) {
-				foreach (get_object_vars($obj) as $k => $v) {
-					if (isset($hash[$prefix . $k])) {
-						$obj->$k = ($checkSlashes && get_magic_quotes_gpc()) ? stripslashes(w2PHTMLDecode($hash[$k])) : w2PHTMLDecode($hash[$k]);
-					}
-				}
-			} else {
-				foreach (get_object_vars($obj) as $k => $v) {
-					if (isset($hash[$k])) {
-						$obj->$k = ($checkSlashes && get_magic_quotes_gpc()) ? stripslashes(w2PHTMLDecode($hash[$k])) : w2PHTMLDecode($hash[$k]);
-					}
+			foreach ($this->getFieldVars($obj) as $k => $v) {
+				if (isset($hash[($prefix ? $prefix : '') . $k])) {
+					$obj->$k = ($checkSlashes && get_magic_quotes_gpc()) ? stripslashes(w2PHTMLDecode($hash[$k])) : w2PHTMLDecode($hash[$k]);
 				}
 			}
 		}
@@ -1663,11 +1664,8 @@ class DBQuery {
 	 */
 	public function insertObject($table, &$object, $keyName = null, $verbose = false) {
 		$this->addTable($table);
-		foreach (get_object_vars($object) as $k => $v) {
-			if (is_array($v) or is_object($v) or $v == null) {
-				continue;
-			}
-			if ($k[0] == '_') { // internal field
+		foreach ($this->getFieldVars($object) as $k => $v) {
+			if ($v == null) {
 				continue;
 			}
 			$fields[] = $k;
@@ -1700,10 +1698,8 @@ class DBQuery {
 	 */
 	public function updateObject($table, &$object, $keyName, $updateNulls = true) {
 		$this->addTable($table);
-		foreach (get_object_vars($object) as $k => $v) {
-			if (is_array($v) or is_object($v) or $k[0] == '_') { // internal or NA field
-				continue;
-			}
+
+		foreach ($this->getFieldVars($object) as $k => $v) {
 			if ($k == $keyName) { // PK not to be updated
 				$this->addWhere($keyName . ' = \'' . db_escape($v) . '\'');
 				continue;
@@ -1715,7 +1711,6 @@ class DBQuery {
 			$values[$k] = $v;
 		}
 		if (count($values)) {
-
 			foreach ($fields as $field) {
 				if (!in_array($values[$field], $this->_db_funcs)) {
 					$this->addUpdate($field, $values[$field]);
@@ -1744,5 +1739,23 @@ class DBQuery {
 		}
 
 		return $newObj;
+	}
+	
+	public function getFieldVars(&$obj) {
+		$fld_vars = array();
+		
+		if (is_a($obj, "CW2pObject")) {
+			$fld_vars = $obj->getFieldVars();
+		}
+		else {
+			foreach (get_object_vars($obj) as $k => $v) {
+				if (is_array($v) or is_object($v) or $k[0] == '_') { // internal or NA field
+					continue;
+				}
+				
+				$fld_vars[$k] = $v;
+			}
+		}
+		return $fld_vars;
 	}
 }

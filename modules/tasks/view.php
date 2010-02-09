@@ -113,7 +113,6 @@ function delIt() {
 <?php } ?>
 </script>
 
-
 <form name="frmDelete" action="./index.php?m=tasks" method="post" accept-charset="utf-8">
 	<input type="hidden" name="dosql" value="do_task_aed" />
 	<input type="hidden" name="del" value="1" />

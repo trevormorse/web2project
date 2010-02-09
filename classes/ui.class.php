@@ -280,10 +280,10 @@ class CAppUI {
 
 		// define bad characters and their replacement
 		$bad_chars = ";/\\";
-		$bad_replace = '....'; // Needs the same number of chars as $bad_chars
+		$bad_replace = '^^^^'; // Needs the same number of chars as $bad_chars
 
 		// check whether the filename contained bad characters
-		if (strpos(strtr($file, $bad_chars, $bad_replace), '.') !== false) {
+		if (strpos(strtr($file, $bad_chars, $bad_replace), '^') !== false) {
 			$AppUI->redirect('m=public&a=access_denied');
 		} else {
 			return $file;
@@ -927,7 +927,7 @@ class CAppUI {
 		return $q->loadHashList('mod_name');
 	}
 
-	public function isActiveModule($module) {
+	public static function isActiveModule($module) {
 		$q = new DBQuery;
 		$q->addTable('modules');
 		$q->addQuery('mod_active');

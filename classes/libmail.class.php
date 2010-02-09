@@ -37,6 +37,9 @@ if (!defined('W2P_BASE_DIR')) {
 
 require_once($AppUI->getLibraryClass('PHPMailer/class.phpmailer'));
 
+// Include the class definition file.
+require_once($AppUI->getSystemClass('html2text'));
+
 class Mail extends PHPMailer {
 	/**
 	 *    list of To addresses
@@ -64,13 +67,15 @@ class Mail extends PHPMailer {
 	public $useRawAddress = true;
 	public $defer;
 
+	private $checkAddress = true;
+	
 	/**
 	 *    Mail constructor
 	 */
 	public function Mail() {
 		$this->autoCheck(true);
 		$this->defer = w2PgetConfig('mail_defer');
-		$this->canEncode = function_exists('imap_8bit') && 'us-ascii' != $this->charset;
+		$this->canEncode = function_exists('imap_8bit') && 'us-ascii' != $this->Charset;
 		$this->hasMbStr = function_exists('mb_substr');
 
 		$this->Mailer = (w2PgetConfig('mail_transport', 'php') == 'smtp' ? 'smtp' : 'mail');
@@ -263,12 +268,31 @@ class Mail extends PHPMailer {
 		$this->Body = w2PHTMLDecode($body);
 
 		if (!empty($charset)) {
-			@($this->charset = strtolower($charset));
-			if ($this->charset != 'us-ascii') {
+			@($this->Charset = strtolower($charset));
+			if ($this->Charset != 'us-ascii') {
 				$this->Encoding = '8bit';
 			}
 		}
 	}
+	
+  /**
+   * Augment the standard function to better handle the alt body for text email
+   * @access public
+   */
+  public function MsgHTML($message, $basedir = '') {
+  	parent::MsgHTML($message, $basedir);
+  	
+    $textMsg = html_entity_decode($this->Body);
+		$h2t = new html2text($textMsg);
+			
+		// Simply call the get_text() method for the class to convert
+		// the HTML to the plain text. Store it into the variable.
+		$this->AltBody = $h2t->get_text();
+    	
+    if (empty($this->AltBody)) {
+			$this->AltBody = 'To view this email message, open it in a program that understands HTML!' . "\n\n";
+    }
+  }
 
 	/**
 	 *        set the mail priority
@@ -290,6 +314,10 @@ class Mail extends PHPMailer {
 	 *    @access public
 	 */
 	public function Send() {
+		if ($this->checkAddress == true) {
+			$this->CheckAdresses($this->ato);
+		}
+		
 		if ($this->defer) {
 			return $this->QueueMail();
 		} else {

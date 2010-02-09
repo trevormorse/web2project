@@ -676,18 +676,18 @@ class CEvent extends CW2pObject {
 			for ($j = 0, $j_cmp = intval($eventListRec[$i]['event_times_recuring']); $j <= $j_cmp; $j++) {
 				//Daily View
 				//show all
-				if ($periodLength == 1) {
+				if ($periodLength == 0) {  //was 1 but daily period length = 0
 					$recEventDate = CEvent::getRecurrentEventforPeriod($start_date, $end_date, $eventListRec[$i]['event_start_date'], $eventListRec[$i]['event_end_date'], $eventListRec[$i]['event_recurs'], $eventListRec[$i]['event_times_recuring'], $j);
 				}
 				//Weekly or Monthly View and Hourly Recurrent Events
 				//only show hourly recurrent event one time and add string 'hourly'
-				elseif ($periodLength > 1 && $eventListRec[$i]['event_recurs'] == 1 && $j == 0) {
+				elseif ($periodLength > 0 && $eventListRec[$i]['event_recurs'] == 1 && $j == 0) {
 					$recEventDate = CEvent::getRecurrentEventforPeriod($start_date, $end_date, $eventListRec[$i]['event_start_date'], $eventListRec[$i]['event_end_date'], $eventListRec[$i]['event_recurs'], $eventListRec[$i]['event_times_recuring'], $j);
 					$eventListRec[$i]['event_title'] = $eventListRec[$i]['event_title'] . ' (' . $AppUI->_('Hourly') . ')';
 				}
 				//Weekly and Monthly View and higher recurrence mode
 				//show all events of recurrence > 1
-				elseif ($periodLength > 1 && $eventListRec[$i]['event_recurs'] > 1) {
+				elseif ($periodLength > 0 && $eventListRec[$i]['event_recurs'] > 1) {
 					$recEventDate = CEvent::getRecurrentEventforPeriod($start_date, $end_date, $eventListRec[$i]['event_start_date'], $eventListRec[$i]['event_end_date'], $eventListRec[$i]['event_recurs'], $eventListRec[$i]['event_times_recuring'], $j);
 				}
 				
