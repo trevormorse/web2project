@@ -139,6 +139,15 @@ class CTaskLog extends CW2pObject
 	public $task_log_updated = null;
 
     /**
+     * Id of user that created the record for this task log.
+     * For task logs when user is creating it for another user
+     *
+     * @var int
+     * @access public
+     */
+    public $task_log_record_creator;
+
+    /**
      * Constructor for class
      *
      * @return void

@@ -18,6 +18,7 @@
         <column>task_log_related_url</column>
         <column>task_log_project</column>
         <column>task_log_company</column>
+        <column>task_log_record_creator</column>
     </table>
     <table name="tasks">
         <column>task_id</column>

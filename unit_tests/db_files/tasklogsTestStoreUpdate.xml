@@ -19,6 +19,7 @@
         <column>task_log_related_url</column>
         <column>task_log_project</column>
         <column>task_log_company</column>
+        <column>task_log_record_creator</column>
         <row>
             <value>1</value>
             <value>1</value>
@@ -37,6 +38,7 @@
             <value>http://www.example.com</value>
             <value>1</value>
             <value>1</value>
+            <value>0</value>
         </row>
     </table>
     <table name="tasks">
