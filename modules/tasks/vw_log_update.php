@@ -188,15 +188,11 @@ if ($obj->task_owner != $AppUI->user_id) {
 	</td>
 </tr>
 <tr>
-    <td align="right">
-        <?php echo $AppUI->_('User'); ?>:
-    </td>
-    <td>
 <?php
     // If users are not allowed to add task logs for others
     if (!$task->task_allow_other_user_tasklogs) {
 ?>
-        <input type="hidden" name="task_log_creator" value="<?php echo ($log->task_log_creator == 0 ? $AppUI->user_id : $log->task_log_creator); ?>" />
+        <td><input type="hidden" name="task_log_creator" value="<?php echo ($log->task_log_creator == 0 ? $AppUI->user_id : $log->task_log_creator); ?>" /></td>
 <?php
     // Users can add task logs for others
     } else {
@@ -204,6 +200,10 @@ if ($obj->task_owner != $AppUI->user_id) {
         // If editing a task log use it's user id, otherwise default to current user(a little more user friendly)
         ($obj->task_log_creator == 0) ? $user_id = $AppUI->user_id : $user_id = $obj->task_log_creator;
 ?>
+    <td align="right">
+        <?php echo $AppUI->_('User'); ?>:
+    </td>
+    <td>
         <select name="task_log_creator">
             <option value=""></option>
 <?php
@@ -215,11 +215,10 @@ if ($obj->task_owner != $AppUI->user_id) {
         }
 ?>
         </select>
+    </td>
 <?php
     }
 ?>
-
-    </td>
 </tr>
 <tr>
 	<td align="right">

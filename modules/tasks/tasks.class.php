@@ -1692,7 +1692,7 @@ class CTask extends CW2pObject {
 		$q->addTable('users', 'u');
 		$q->innerJoin('user_tasks', 'ut', 'ut.user_id = u.user_id');
 		$q->leftJoin('contacts', 'co', ' co.contact_id = u.user_contact');
-		$q->addQuery('u.*, ut.perc_assignment, ut.user_task_priority, co.contact_last_name');
+		$q->addQuery('u.*, ut.perc_assignment, ut.user_task_priority, co.contact_last_name, co.contact_first_name');
 		$q->addWhere('ut.task_id = ' . (int)$taskId);
 
 		return $q->loadHashList('user_id');

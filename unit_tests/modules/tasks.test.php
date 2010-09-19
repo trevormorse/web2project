@@ -2177,7 +2177,7 @@ class Tasks_Test extends PHPUnit_Extensions_Database_TestCase
         $assigned_users = $this->obj->getAssignedUsers(1);
 
         $this->assertEquals(1, count($assigned_users));
-        $this->assertEquals(26, count($assigned_users[1]));
+        $this->assertEquals(28, count($assigned_users[1]));
 
         $this->assertEquals(1,                                  $assigned_users[1]['user_id']);
         $this->assertEquals(1,                                  $assigned_users[1]['user_contact']);
