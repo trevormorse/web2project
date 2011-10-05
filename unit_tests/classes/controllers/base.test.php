@@ -45,6 +45,14 @@ class Base_Test extends PHPUnit_Framework_TestCase
     private $appUI;
 
     /**
+     * An w2p_Controllers_Base class for use in tests
+     *
+     * @param w2P_Controllers_Base
+     * @access protected
+     */
+    protected $obj = null;
+
+    /**
      * Create an AppUI before running tests
      */
     protected function setUp()
@@ -61,17 +69,61 @@ class Base_Test extends PHPUnit_Framework_TestCase
      */
     public function testNewBaseAttributes()
     {
-        $base_controller = new w2p_Controllers_Base(new CLink(), false, 'prefix', '/success', '/failure');
+        $this->obj = new w2p_Controllers_Base(new CLink(), false, 'prefix', '/success', '/failure');
 
-        $this->assertInstanceOf('w2p_Controllers_Base',     $base_controller);
-        $this->assertObjectHasAttribute('delete',           $base_controller);
-        $this->assertObjectHasAttribute('successPath',      $base_controller);
-        $this->assertObjectHasAttribute('errorPath',        $base_controller);
-        $this->assertObjectHasAttribute('accessDeniedPath', $base_controller);
-        $this->assertObjectHasAttribute('object',           $base_controller);
-        $this->assertObjectHasAttribute('success',          $base_controller);
-        $this->assertObjectHasAttribute('resultPath',       $base_controller);
-        $this->assertObjectHasAttribute('resultMessage',    $base_controller);
-        $this->assertInstanceOf('CLink',                    $base_controller->object);
+        $this->assertInstanceOf('w2p_Controllers_Base',     $this->obj);
+        $this->assertObjectHasAttribute('delete',           $this->obj);
+        $this->assertObjectHasAttribute('successPath',      $this->obj);
+        $this->assertObjectHasAttribute('errorPath',        $this->obj);
+        $this->assertObjectHasAttribute('accessDeniedPath', $this->obj);
+        $this->assertObjectHasAttribute('object',           $this->obj);
+        $this->assertObjectHasAttribute('success',          $this->obj);
+        $this->assertObjectHasAttribute('resultPath',       $this->obj);
+        $this->assertObjectHasAttribute('resultMessage',    $this->obj);
+        $this->assertInstanceOf('CLink',                    $this->obj->object);
+    }
+
+    /**
+     * Tests that a new base controller objects attributes have the proper values
+     */
+    public function testNewBaseAttributesValues()
+    {
+        $this->obj = new w2p_Controllers_Base(new CLink(), false, 'prefix', '/success', '/failure');
+
+        $this->assertInstanceOf('w2p_Controllers_Base',                              $this->obj);
+        $this->assertAttributeEquals(false, 'delete',                                $this->obj);
+        $this->assertAttributeEquals('prefix', 'prefix',                             $this->obj);
+        $this->assertAttributeEquals('/success', 'successPath',                      $this->obj);
+        $this->assertAttributeEquals('/failure', 'errorPath',                        $this->obj);
+        $this->assertAttributeEquals('m=public&a=access_denied', 'accessDeniedPath', $this->obj);
+        $this->assertEquals(false,                                                   $this->obj->success);
+        $this->assertEquals('',                                                      $this->obj->resultPath);
+        $this->assertEquals('',                                                      $this->obj->resultMessage);
+        $this->assertInstanceOf('CLink',                                             $this->obj->object);
+    }
+
+    /**
+     * Tests setting the access denied path
+     */
+    public function testSetAccessDeniedPath()
+    {
+        $this->obj = new w2p_Controllers_Base(new CLink(), false, 'prefix', '/success', '/failure');
+
+        $this->obj->setAccessDeniedPath('/somepath');
+
+        $this->assertAttributeEquals('/somepath', 'accessDeniedPath', $this->obj);
+    }
+
+    /**
+     * Tests process when bind of object fails
+     */
+    public function testProcessInvalidBind()
+    {
+        $this->obj = new w2p_Controllers_Base(new CLink(), false, 'prefix', '/success', '/failure');
+
+        $testAppUI = $this->obj->process($this->appUI, array(0));
+
+        $this->assertEquals('/failure', $this->obj->resultPath);
+        $this->assertEquals('CLink::store-check failed - link name is not set<br />CLink::store-check failed - link url is not set<br />CLink::store-check failed - link owner is not set', $testAppUI->msg);
     }
 }
