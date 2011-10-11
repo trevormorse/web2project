@@ -119,7 +119,39 @@ class Base_Test extends PHPUnit_Framework_TestCase
      */
     public function testProcessInvalidBind()
     {
-        $this->obj = new w2p_Controllers_Base(new CLink(), false, 'prefix', '/success', '/failure');
+        $linkStub = $this->getMock('CLink');
+        $linkStub->expects($this->once())
+                 ->method('bind')
+                 ->will($this->returnValue(false));
+        $linkStub->expects($this->once())
+                 ->method('getError')
+                 ->will($this->returnValue('CLink::store-check failed - link name is not set<br />CLink::store-check failed - link url is not set<br />CLink::store-check failed - link owner is not set'));
+
+        $this->obj = new w2p_Controllers_Base($linkStub, false, 'prefix', '/success', '/failure');
+
+        $testAppUI = $this->obj->process($this->appUI, array(0));
+
+        $this->assertEquals('/failure', $this->obj->resultPath);
+        $this->assertEquals('CLink::store-check failed - link name is not set<br />CLink::store-check failed - link url is not set<br />CLink::store-check failed - link owner is not set', $testAppUI->msg);
+    }
+
+    /**
+     * Tests a delete that fails
+     */
+    public function testProcessFailDelete()
+    {
+        $linkStub = $this->getMock('CLink');
+        $linkStub->expects($this->once())
+                 ->method('bind')
+                 ->with(array(0))
+                 ->will($this->returnValue(true));
+        $linkStub->expects($this->once())
+                 ->method('delete')
+                 ->will($this->returnValue(false));
+        $linkStub->expects($this->exactly(2))
+                 ->method('getError')
+                 ->will($this->returnValue(array('CLink::store-check failed - link name is not set', 'CLink::store-check failed - link url is not set', 'CLink::store-check failed - link owner is not set')));
+        $this->obj = new w2p_Controllers_Base($linkStub,  true, 'prefix', '/success', '/failure');
 
         $testAppUI = $this->obj->process($this->appUI, array(0));
 
